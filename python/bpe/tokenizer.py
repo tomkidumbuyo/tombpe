@@ -1,5 +1,6 @@
 from pathlib import Path
 from collections import Counter
+import json
 
 class BasicTokenizer:
     
@@ -20,7 +21,6 @@ class BasicTokenizer:
         if key: return key
         self.paired_tokens[newPairedTokenId] = pair
         return newPairedTokenId
-
 
     def _merge_pairs(self, tokens):
         while True:
@@ -50,8 +50,24 @@ class BasicTokenizer:
     def decode(self, tokens: list[int]) -> str:
         pass
 
-    def save(self, path: str):
-        pass
+    def __get_vocab_from_paired_tokens(self):
+        self.vocab = {i: b.decode('utf-8', errors='ignore') 
+              for i, b in ((i, bytes([i])) for i in range(256)) 
+              if b.decode('utf-8', errors='ignore') != ''}
+        for token_id, pair in self.paired_tokens.items():
+            self.vocab[token_id] = ''.join([self.vocab[p] for p in pair])
+        return self.vocab
+
+    def save(self, output_path: str):
+        empty_bpe_model_json_path = Path(__file__).parent.parent / "assets" / "empty_bpe_model.json"
+
+        with empty_bpe_model_json_path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        data["model"]["vocab"] =  self.__get_vocab_from_paired_tokens()
+
+        with Path(output_path).open("w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
 
     def load(self, path: str):
         file_path = Path(path)

@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "BPE",
+    "vocab": {},
+    "merges": []
+  },
+  "tokenizer_config": {
+    "lowercase": false,
+    "add_prefix_space": true,
+    "special_tokens": {}
+  }
+}
