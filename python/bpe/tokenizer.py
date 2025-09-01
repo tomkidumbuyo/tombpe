@@ -41,8 +41,6 @@ class BasicTokenizer:
     def train(self, training_string):
         tokens = list(training_string.encode("utf-8"))
         mergedTokens = self._merge_pairs(tokens)
-        
-
 
     def encode(self, text: str) -> list[int]:
         pass
@@ -73,3 +71,8 @@ class BasicTokenizer:
         file_path = Path(path)
         if not file_path.exists():
             raise FileNotFoundError(f"File not found: {path}")
+        
+        with file_path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        self.vocab = {int(k): v for k, v in data["model"]["vocab"].items()}
