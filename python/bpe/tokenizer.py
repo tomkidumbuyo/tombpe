@@ -9,11 +9,11 @@ class BasicTokenizer:
         self.min_frequency = min_frequency
         self.paired_tokens = {}
 
-    def _get_pair_frequencies(self, tokens, min_frequency=1):
+    def _get_pair_frequencies(self, tokens, min_frequency=1) -> dict[tuple, int]:
         pair_frequencies = dict(Counter(zip(tokens, tokens[1:])))
         return {pair: count for pair, count in pair_frequencies.items() if count >= min_frequency}
 
-    def _add_new_paired_tokens(self, pair: str):
+    def _add_new_paired_tokens(self, pair: str) -> int:
         newPairedTokenId = len(self.paired_tokens) + 256
         if(pair[0] >= 256): pair = (*self.paired_tokens[pair[0]], pair[1])
         if(pair[len(pair) - 1] >= 256): pair = (*pair[:-1], *self.paired_tokens[pair[len(pair) - 1]])
@@ -41,19 +41,36 @@ class BasicTokenizer:
     def train(self, training_string):
         tokens = list(training_string.encode("utf-8"))
         mergedTokens = self._merge_pairs(tokens)
+        self._get_vocab_from_paired_tokens()
 
     def encode(self, text: str) -> list[int]:
-        pass
+        result = []
+        i = 0
+        while i < len(text):
+            match = None
+            for key, sub in self.vocab.items():
+                if text.startswith(sub, i):
+                    match = [key, sub]
+                    break
+            if match:
+                result.append(match[0])
+                i += len(match[1])
+            else:
+                result.append(text[i])
+                i += 1
+        return result
 
     def decode(self, tokens: list[int]) -> str:
-        pass
+        print(tokens)
+        return ''.join([self.vocab[token] for token in tokens])
 
-    def __get_vocab_from_paired_tokens(self):
+    def _get_vocab_from_paired_tokens(self):
         self.vocab = {i: b.decode('utf-8', errors='ignore') 
               for i, b in ((i, bytes([i])) for i in range(256)) 
               if b.decode('utf-8', errors='ignore') != ''}
         for token_id, pair in self.paired_tokens.items():
             self.vocab[token_id] = ''.join([self.vocab[p] for p in pair])
+        self.vocab = dict(sorted(self.vocab.items(), key=lambda x: len(x[1]), reverse=True))
         return self.vocab
 
     def save(self, output_path: str):
@@ -62,7 +79,7 @@ class BasicTokenizer:
         with empty_bpe_model_json_path.open("r", encoding="utf-8") as f:
             data = json.load(f)
 
-        data["model"]["vocab"] =  self.__get_vocab_from_paired_tokens()
+        data["model"]["vocab"] =  self._get_vocab_from_paired_tokens()
 
         with Path(output_path).open("w", encoding="utf-8") as f:
             json.dump(data, f, indent=4)
